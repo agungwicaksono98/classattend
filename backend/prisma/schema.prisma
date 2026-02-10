@@ -1,0 +1,87 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum GeofenceStatus {
+  INSIDE
+  OUTSIDE
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String       @map("password_hash")
+  name         String
+  nis          String?      @unique
+  role         Role         @default(STUDENT)
+  classId      String?      @map("class_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  class        Class?       @relation("ClassStudents", fields: [classId], references: [id])
+  teacherOf    Class[]      @relation("ClassTeacher")
+  attendances  Attendance[]
+
+  @@index([email])
+  @@index([role])
+  @@index([classId])
+  @@map("users")
+}
+
+model Class {
+  id             String   @id @default(uuid())
+  name           String
+  teacherId      String?  @map("teacher_id")
+  geofenceLat    Decimal? @map("geofence_lat") @db.Decimal(10, 8)
+  geofenceLng    Decimal? @map("geofence_lng") @db.Decimal(11, 8)
+  geofenceRadius Int      @default(100) @map("geofence_radius")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  teacher  User?  @relation("ClassTeacher", fields: [teacherId], references: [id])
+  students User[] @relation("ClassStudents")
+
+  @@index([teacherId])
+  @@map("classes")
+}
+
+model Attendance {
+  id               String         @id @default(uuid())
+  userId           String         @map("user_id")
+  date             DateTime       @db.Date
+  checkInTime      DateTime       @map("check_in_time")
+  checkOutTime     DateTime?      @map("check_out_time")
+  checkInLat       Decimal        @map("check_in_lat") @db.Decimal(10, 8)
+  checkInLng       Decimal        @map("check_in_lng") @db.Decimal(11, 8)
+  checkInAccuracy  Decimal?       @map("check_in_accuracy") @db.Decimal(10, 2)
+  checkInStatus    GeofenceStatus @map("check_in_status")
+  checkOutLat      Decimal?       @map("check_out_lat") @db.Decimal(10, 8)
+  checkOutLng      Decimal?       @map("check_out_lng") @db.Decimal(11, 8)
+  checkOutAccuracy Decimal?       @map("check_out_accuracy") @db.Decimal(10, 2)
+  durationMinutes  Int?           @map("duration_minutes")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@map("attendances")
+}
