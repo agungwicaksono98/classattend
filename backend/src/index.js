@@ -70,8 +70,13 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`🚀 ClassAttend API running on http://localhost:${PORT}`);
-    console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
-});
+// Start server (only for local development, not Vercel)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`🚀 ClassAttend API running on http://localhost:${PORT}`);
+        console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
+    });
+}
+
+// Export for Vercel Serverless
+module.exports = app;
